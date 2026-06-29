@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { formatSupabaseMessage } from "./supabase-error";
 
 export interface DocumentationRecord {
   id: string;
@@ -32,32 +33,27 @@ export class DocumentationError extends Error {
 const DOCUMENTATION_COLUMNS =
   "id, department, process_key, content, updated_at" as const;
 
-function wrapSupabaseError(
+function toDocumentationError(
   message: string,
   error: { message: string; code?: string; details?: string },
   context?: { department?: string; processKey?: string },
 ): DocumentationError {
-  const detail = [error.message, error.details].filter(Boolean).join(" — ");
-  return new DocumentationError(`${message}: ${detail}`, {
+  return new DocumentationError(`${message}: ${formatSupabaseMessage(error)}`, {
     cause: error,
-    department: context?.department,
-    processKey: context?.processKey,
+    ...context,
   });
 }
 
-export function documentationToState(records: DocumentationRecord[]): {
-  details: Record<string, string>;
-  recordIds: Record<string, string>;
-} {
+export function documentationToDetails(
+  records: DocumentationRecord[],
+): Record<string, string> {
   const details: Record<string, string> = {};
-  const recordIds: Record<string, string> = {};
 
   for (const row of records) {
     details[row.process_key] = row.content ?? "";
-    recordIds[row.process_key] = row.id;
   }
 
-  return { details, recordIds };
+  return details;
 }
 
 export async function getDocumentationByDepartment(
@@ -78,7 +74,7 @@ export async function getDocumentationByDepartment(
   if (error) {
     return {
       data: [],
-      error: wrapSupabaseError("Failed to fetch documentation", error, {
+      error: toDocumentationError("Failed to fetch documentation", error, {
         department,
       }),
     };
@@ -91,7 +87,10 @@ export async function saveDocumentation(
   department: string,
   processKey: string,
   content: string,
-): Promise<{ data: DocumentationRecord; error: null } | { data: null; error: DocumentationError }> {
+): Promise<
+  | { data: DocumentationRecord; error: null }
+  | { data: null; error: DocumentationError }
+> {
   if (!department.trim()) {
     return {
       data: null,
@@ -125,7 +124,7 @@ export async function saveDocumentation(
   if (error) {
     return {
       data: null,
-      error: wrapSupabaseError("Failed to save documentation", error, {
+      error: toDocumentationError("Failed to save documentation", error, {
         department,
         processKey,
       }),

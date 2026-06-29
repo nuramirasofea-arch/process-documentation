@@ -40,7 +40,10 @@ export interface DepartmentConfig {
 }
 
 export interface Comment {
+  id: string;
+  author: string;
   html: string;
+  createdAt: string;
   when: string;
 }
 

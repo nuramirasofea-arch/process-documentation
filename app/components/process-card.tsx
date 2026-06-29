@@ -2,7 +2,6 @@ import { DOT_COLOR, PILL } from "@/lib/constants";
 import type { ProcessStep } from "@/lib/types";
 
 interface ProcessCardProps {
-  stepKey: string;
   step: ProcessStep;
   stepIndex: number;
   isActive: boolean;
@@ -19,7 +18,6 @@ function connectorClass(kind: ProcessStep["k"]): string {
 }
 
 export function ProcessCard({
-  stepKey,
   step,
   stepIndex,
   isActive,
@@ -36,7 +34,6 @@ export function ProcessCard({
       <button
         type="button"
         className={`step-bar kind-${step.k}${isActive ? " active" : ""}`}
-        data-key={stepKey}
         onClick={onClick}
       >
         <span className="step-num">{stepIndex + 1}</span>

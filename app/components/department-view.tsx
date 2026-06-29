@@ -1,21 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";import { ProcessCard } from "@/app/components/process-card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ProcessCard } from "@/app/components/process-card";
+import { ProcessDrawer } from "@/app/components/process-drawer";
 import {
-  hasDetailContent,
-  ProcessDrawer,
-} from "@/app/components/process-drawer";
+  getCommentsByDepartment,
+  getCommentsForStep,
+  groupCommentsByProcessKey,
+  postComment,
+} from "@/lib/comments";
 import {
-  documentationToState,
+  documentationToDetails,
   saveDocumentation,
   type DocumentationRecord,
 } from "@/lib/documentation";
-import {
-  getProcessesForDepartment,
-  PARKING_LOT,
-} from "@/lib/mock-data";
-import { stripTags } from "@/lib/sanitize-html";
+import { getProcessesForDepartment, PARKING_LOT } from "@/lib/mock-data";
+import { hasDetailContent } from "@/lib/sanitize-html";
 import type { Comment, DrawerContext, Process, ProcessStep } from "@/lib/types";
 
 interface DepartmentViewProps {
@@ -26,45 +27,43 @@ interface DepartmentViewProps {
   initialDocumentation?: DocumentationRecord[];
 }
 
+interface FlowSectionProps {
+  details: Record<string, string>;
+  comments: Record<string, Comment[]>;
+  activeStepKey: string | null;
+  onStepClick: (context: DrawerContext) => void;
+}
+
 function Legend() {
+  const items = [
+    { swatch: "var(--ink)", label: "Black — high-level process" },
+    { swatch: "var(--handoff)", label: "Blue — hand-off" },
+    { swatch: "var(--pain)", label: "Red — delay / pain point" },
+    { swatch: "var(--opp)", label: "Green — opportunity" },
+  ] as const;
+
+  const dots = [
+    { color: "var(--dot-yellow)", label: "Pain / back & forth" },
+    { color: "var(--dot-green)", label: "Quick-win" },
+    { color: "var(--dot-orange)", label: "Work waits here" },
+  ] as const;
+
   return (
     <div className="legend">
       <h2>Legend</h2>
       <div className="legend-grid">
-        <div className="leg">
-          <span className="swatch" style={{ background: "var(--ink)" }} />
-          Black — high-level process
-        </div>
-        <div className="leg">
-          <span className="swatch" style={{ background: "var(--handoff)" }} />
-          Blue — hand-off
-        </div>
-        <div className="leg">
-          <span className="swatch" style={{ background: "var(--pain)" }} />
-          Red — delay / pain point
-        </div>
-        <div className="leg">
-          <span className="swatch" style={{ background: "var(--opp)" }} />
-          Green — opportunity
-        </div>
-        <div className="leg">
-          <span
-            className="dot"
-            style={{ background: "var(--dot-yellow)" }}
-          />
-          Pain / back &amp; forth
-        </div>
-        <div className="leg">
-          <span className="dot" style={{ background: "var(--dot-green)" }} />
-          Quick-win
-        </div>
-        <div className="leg">
-          <span
-            className="dot"
-            style={{ background: "var(--dot-orange)" }}
-          />
-          Work waits here
-        </div>
+        {items.map(({ swatch, label }) => (
+          <div key={label} className="leg">
+            <span className="swatch" style={{ background: swatch }} />
+            {label}
+          </div>
+        ))}
+        {dots.map(({ color, label }) => (
+          <div key={label} className="leg">
+            <span className="dot" style={{ background: color }} />
+            {label}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -76,13 +75,7 @@ function ProcessSection({
   comments,
   activeStepKey,
   onStepClick,
-}: {
-  proc: Process;
-  details: Record<string, string>;
-  comments: Record<string, Comment[]>;
-  activeStepKey: string | null;
-  onStepClick: (context: DrawerContext) => void;
-}) {
+}: FlowSectionProps & { proc: Process }) {
   return (
     <section className="proc">
       <div className="proc-head">
@@ -96,12 +89,11 @@ function ProcessSection({
           return (
             <ProcessCard
               key={stepKey}
-              stepKey={stepKey}
               step={step}
               stepIndex={index}
               isActive={activeStepKey === stepKey}
               hasNote={hasDetailContent(details[stepKey])}
-              commentCount={(comments[stepKey] ?? []).length}
+              commentCount={comments[stepKey]?.length ?? 0}
               onClick={() =>
                 onStepClick({
                   stepKey,
@@ -126,12 +118,7 @@ function ParkingLotSection({
   comments,
   activeStepKey,
   onStepClick,
-}: {
-  details: Record<string, string>;
-  comments: Record<string, Comment[]>;
-  activeStepKey: string | null;
-  onStepClick: (context: DrawerContext) => void;
-}) {
+}: FlowSectionProps) {
   const pseudoProc = { seq: "PL", title: "Parking Lot" };
 
   return (
@@ -148,12 +135,11 @@ function ParkingLotSection({
           return (
             <ProcessCard
               key={stepKey}
-              stepKey={stepKey}
               step={step}
               stepIndex={index}
               isActive={activeStepKey === stepKey}
               hasNote={hasDetailContent(details[stepKey])}
-              commentCount={(comments[stepKey] ?? []).length}
+              commentCount={comments[stepKey]?.length ?? 0}
               onClick={() =>
                 onStepClick({
                   stepKey,
@@ -179,28 +165,78 @@ export function DepartmentView({
   initialDocumentation = [],
 }: DepartmentViewProps) {
   const router = useRouter();
-  const initialState = useMemo(
-    () => documentationToState(initialDocumentation),
+
+  const serverDetails = useMemo(
+    () => documentationToDetails(initialDocumentation),
     [initialDocumentation],
   );
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerContext, setDrawerContext] = useState<DrawerContext | null>(null);
-  const [details, setDetails] = useState<Record<string, string>>(
-    () => initialState.details,
+  const [pendingDetails, setPendingDetails] = useState<Record<string, string>>(
+    {},
   );
-  const [recordIds, setRecordIds] = useState<Record<string, string>>(
-    () => initialState.recordIds,
+  const details = useMemo(
+    () => ({ ...serverDetails, ...pendingDetails }),
+    [serverDetails, pendingDetails],
+  );
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerContext, setDrawerContext] = useState<DrawerContext | null>(
+    null,
   );
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsPosting, setCommentsPosting] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
-    const nextState = documentationToState(initialDocumentation);
-    setDetails(nextState.details);
-    setRecordIds(nextState.recordIds);
-  }, [initialDocumentation]);
+    let cancelled = false;
+
+    async function loadCommentCounts() {
+      const { data, error } = await getCommentsByDepartment(departmentSlug);
+      if (cancelled || error) {
+        if (error) console.error("Failed to load comment counts:", error.message);
+        return;
+      }
+
+      setComments(groupCommentsByProcessKey(data));
+    }
+
+    void loadCommentCounts();
+    return () => {
+      cancelled = true;
+    };
+  }, [departmentSlug]);
+
+  useEffect(() => {
+    if (!drawerOpen || !drawerContext) return;
+
+    const processKey = drawerContext.stepKey;
+    let cancelled = false;
+
+    async function loadStepComments() {
+      setCommentsLoading(true);
+      try {
+        const { data, error } = await getCommentsForStep(
+          departmentSlug,
+          processKey,
+        );
+        if (cancelled || error) {
+          if (error) console.error("Failed to load comments:", error.message);
+          return;
+        }
+
+        setComments((prev) => ({ ...prev, [processKey]: data }));
+      } finally {
+        if (!cancelled) setCommentsLoading(false);
+      }
+    }
+
+    void loadStepComments();
+    return () => {
+      cancelled = true;
+    };
+  }, [departmentSlug, drawerContext, drawerOpen]);
 
   const processes = useMemo(
     () => (isParkingLot ? [] : getProcessesForDepartment(departmentSlug)),
@@ -234,65 +270,50 @@ export function DepartmentView({
         html,
       );
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setDetails((prev) => ({ ...prev, [processKey]: data.content }));
-      setRecordIds((prev) => ({ ...prev, [processKey]: data.id }));
+      setPendingDetails((prev) => ({ ...prev, [processKey]: data.content }));
       router.refresh();
     },
     [departmentSlug, drawerContext, router],
   );
 
   const handlePostComment = useCallback(
-    (html: string) => {
+    async (html: string, author: string) => {
       if (!drawerContext) return;
-      const entry: Comment = {
-        html,
-        when: new Date().toLocaleString(),
-      };
-      setComments((prev) => ({
-        ...prev,
-        [drawerContext.stepKey]: [...(prev[drawerContext.stepKey] ?? []), entry],
-      }));
+
+      const processKey = drawerContext.stepKey;
+      setCommentsPosting(true);
+
+      try {
+        const { error: postError } = await postComment(
+          departmentSlug,
+          processKey,
+          author,
+          html,
+        );
+        if (postError) throw postError;
+
+        const { data, error: reloadError } = await getCommentsForStep(
+          departmentSlug,
+          processKey,
+        );
+        if (reloadError) throw reloadError;
+
+        setComments((prev) => ({ ...prev, [processKey]: data }));
+      } finally {
+        setCommentsPosting(false);
+      }
     },
-    [drawerContext],
+    [departmentSlug, drawerContext],
   );
 
-  const handleDeleteComment = useCallback(
-    (index: number) => {
-      if (!drawerContext) return;
-      setComments((prev) => {
-        const list = [...(prev[drawerContext.stepKey] ?? [])];
-        list.splice(index, 1);
-        return { ...prev, [drawerContext.stepKey]: list };
-      });
-    },
-    [drawerContext],
-  );
-
-  useEffect(() => {
-    const hasUnsaved = Object.values(details).some(
-      (html) => stripTags(html).length > 0,
-    );
-    if (!hasUnsaved) return;
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [details]);
-
-  const activeStepKey = drawerOpen ? drawerContext?.stepKey ?? null : null;
+  const activeStepKey = drawerOpen ? (drawerContext?.stepKey ?? null) : null;
   const currentDetail = drawerContext
-    ? details[drawerContext.stepKey] ?? ""
+    ? (details[drawerContext.stepKey] ?? "")
     : "";
   const currentComments = drawerContext
-    ? comments[drawerContext.stepKey] ?? []
+    ? (comments[drawerContext.stepKey] ?? [])
     : [];
 
   return (
@@ -332,10 +353,11 @@ export function DepartmentView({
           context={drawerContext}
           detailHtml={currentDetail}
           comments={currentComments}
+          commentsLoading={commentsLoading}
+          commentsPosting={commentsPosting}
           onClose={closeDrawer}
           onSaveDetail={handleSaveDetail}
           onPostComment={handlePostComment}
-          onDeleteComment={handleDeleteComment}
           onToast={showToast}
         />
       </div>

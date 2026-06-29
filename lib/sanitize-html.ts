@@ -144,3 +144,7 @@ export function stripTags(html: string): string {
   d.innerHTML = html;
   return (d.textContent || "").replace(/\u00a0/g, " ");
 }
+
+export function hasDetailContent(html: string | undefined): boolean {
+  return !!(html && stripTags(html).trim());
+}

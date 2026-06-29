@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CommentSection } from "@/app/components/comment-section";
 import { RichTextEditor } from "@/app/components/rich-text-editor";
 import { KTAG } from "@/lib/constants";
-import { sanitizeHtml, stripTags } from "@/lib/sanitize-html";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { Comment, DrawerContext } from "@/lib/types";
 
 interface ProcessDrawerProps {
@@ -12,10 +12,11 @@ interface ProcessDrawerProps {
   context: DrawerContext | null;
   detailHtml: string;
   comments: Comment[];
+  commentsLoading?: boolean;
+  commentsPosting?: boolean;
   onClose: () => void;
   onSaveDetail: (html: string) => Promise<void>;
-  onPostComment: (html: string) => void;
-  onDeleteComment: (index: number) => void;
+  onPostComment: (html: string, author: string) => Promise<void>;
   onToast: (message: string) => void;
 }
 
@@ -24,10 +25,11 @@ export function ProcessDrawer({
   context,
   detailHtml,
   comments,
+  commentsLoading = false,
+  commentsPosting = false,
   onClose,
   onSaveDetail,
   onPostComment,
-  onDeleteComment,
   onToast,
 }: ProcessDrawerProps) {
   const [draft, setDraft] = useState(detailHtml);
@@ -171,14 +173,12 @@ export function ProcessDrawer({
         </div>
         <CommentSection
           comments={comments}
+          isLoading={commentsLoading}
+          isPosting={commentsPosting}
           onPost={onPostComment}
-          onDelete={onDeleteComment}
+          onToast={onToast}
         />
       </div>
     </aside>
   );
-}
-
-export function hasDetailContent(html: string | undefined): boolean {
-  return !!(html && stripTags(html).trim());
 }

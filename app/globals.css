@@ -1070,6 +1070,108 @@ main.wide {
   background: #0d3a30;
 }
 
+.comment-author-bar {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.comment-change-name {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--handoff);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.comment-change-name:hover {
+  text-decoration: underline;
+}
+
+.comment-status {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.author-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 28, 28, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 80;
+}
+
+.author-modal {
+  width: min(100%, 360px);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+}
+
+.author-modal h4 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.author-modal-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.author-modal-input {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px 11px;
+  background: #fff;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.author-modal-input:focus {
+  outline: 2px solid var(--handoff);
+  outline-offset: -1px;
+  border-color: var(--handoff);
+}
+
+.author-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.author-modal-cancel {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px 16px;
+}
+
+.author-modal-cancel:hover {
+  background: var(--line-soft);
+}
+
 .toast {
   position: fixed;
   bottom: 20px;
