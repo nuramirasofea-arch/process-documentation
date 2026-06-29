@@ -75,6 +75,7 @@ export function CommentAuthorModal({
 
   return (
     <AuthorModalForm
+      // Remount when name changes so the input reflects "Change name" vs first-time entry.
       key={initialName}
       initialName={initialName}
       title={title}

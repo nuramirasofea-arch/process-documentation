@@ -1,5 +1,12 @@
 import type { DepartmentConfig, ParkingLotItem, Process } from "./types";
 
+/**
+ * Hardcoded process flows from the WORQ workshop board.
+ *
+ * Only documentation and comments live in Supabase. Process structure, step
+ * titles, and routing slugs are defined here. `process_key` in Supabase
+ * matches `${process.id}.${stepIndex}` (see DepartmentView / ProcessSection).
+ */
 export const PROCESSES: Process[] = [
   {
     id: "ma",
@@ -279,6 +286,7 @@ export function getDepartmentList(): DepartmentConfig[] {
 export function getProcessesForDepartment(slug: string): Process[] {
   const config = getDepartmentConfig(slug);
   if (config.isParkingLot) return [];
+  // e.g. `/community` route shows processes tagged `dept: "commercial"`.
   return PROCESSES.filter((p) => p.dept === config.processDept);
 }
 

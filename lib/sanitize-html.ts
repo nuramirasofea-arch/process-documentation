@@ -1,3 +1,10 @@
+/**
+ * HTML sanitization for documentation content only.
+ *
+ * Comments are plain text and use `formatCommentForDisplay` instead.
+ * Documentation is sanitized on save (client-side) before Supabase upsert;
+ * there is no server-side re-sanitization on read.
+ */
 const ALLOWED_TAGS: Record<string, number> = {
   B: 1,
   STRONG: 1,
@@ -128,6 +135,10 @@ function walk(node: Node): void {
   }
 }
 
+/**
+ * Whitelist-based sanitizer for rich documentation HTML.
+ * Must run in the browser (`document` required); returns input unchanged on the server.
+ */
 export function sanitizeHtml(html: string): string {
   if (typeof document === "undefined") return html;
   const tmp = document.createElement("div");
@@ -145,6 +156,64 @@ export function stripTags(html: string): string {
   return (d.textContent || "").replace(/\u00a0/g, " ");
 }
 
+/** True when a step has non-empty documentation (ignores empty HTML tags). */
 export function hasDetailContent(html: string | undefined): boolean {
   return !!(html && stripTags(html).trim());
+}
+
+const HTML_ENTITY_MAP: Record<string, string> = {
+  nbsp: "\u00a0",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+};
+
+function decodeHtmlEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (match, entity: string) => {
+    if (entity.startsWith("#x")) {
+      return String.fromCharCode(parseInt(entity.slice(2), 16));
+    }
+    if (entity.startsWith("#")) {
+      return String.fromCharCode(Number(entity.slice(1)));
+    }
+    return HTML_ENTITY_MAP[entity.toLowerCase()] ?? match;
+  });
+}
+
+const LEGACY_HTML_COMMENT_PATTERN = /<[a-z][\s\S]*?>/i;
+
+/** Convert legacy stored comment HTML to plain text without DOM parsing. */
+function htmlToPlainCommentText(html: string): string {
+  if (!html) return "";
+
+  const withLineBreaks = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>\s*/gi, "\n")
+    .replace(/<\/div>\s*/gi, "\n")
+    .replace(/<\/li>\s*/gi, "\n")
+    .replace(/<\/h[1-6]>\s*/gi, "\n")
+    .replace(/<\/tr>\s*/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+
+  return decodeHtmlEntities(withLineBreaks)
+    .replace(/\u00a0/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Renders a stored comment as plain text.
+ *
+ * New rows are plain text; legacy rows may contain HTML from the old rich-text
+ * editor. HTML is detected by tag presence and converted without DOM parsing
+ * to avoid XSS during conversion.
+ */
+export function formatCommentForDisplay(stored: string): string {
+  if (!stored) return "";
+  if (LEGACY_HTML_COMMENT_PATTERN.test(stored)) {
+    return htmlToPlainCommentText(stored);
+  }
+  return stored;
 }

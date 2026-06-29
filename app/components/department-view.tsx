@@ -85,6 +85,7 @@ function ProcessSection({
       </div>
       <div className="flow-list">
         {proc.steps.map((step, index) => {
+          // Must match Supabase `process_key` (e.g. "ma.0", "ma.1").
           const stepKey = `${proc.id}.${index}`;
           return (
             <ProcessCard
@@ -130,6 +131,7 @@ function ParkingLotSection({
       </div>
       <div className="flow-list">
         {PARKING_LOT.items.map((item, index) => {
+          // Parking lot items are single-step; index is always 0 in `process_key`.
           const stepKey = `${item.id}.0`;
           const step: ProcessStep = { k: "process", t: item.t };
           return (
@@ -171,6 +173,7 @@ export function DepartmentView({
     [initialDocumentation],
   );
 
+  // Overlay saved content immediately after write; merged over server props until refresh completes.
   const [pendingDetails, setPendingDetails] = useState<Record<string, string>>(
     {},
   );
@@ -189,6 +192,7 @@ export function DepartmentView({
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
 
+  // Load all comments once per department so step cards can show badge counts.
   useEffect(() => {
     let cancelled = false;
 
@@ -208,6 +212,7 @@ export function DepartmentView({
     };
   }, [departmentSlug]);
 
+  // Refetch the open step's thread when the drawer opens (no Realtime subscription).
   useEffect(() => {
     if (!drawerOpen || !drawerContext) return;
 
@@ -273,13 +278,14 @@ export function DepartmentView({
       if (error) throw error;
 
       setPendingDetails((prev) => ({ ...prev, [processKey]: data.content }));
+      // Re-fetch server props so `initialDocumentation` stays in sync after navigation.
       router.refresh();
     },
     [departmentSlug, drawerContext, router],
   );
 
   const handlePostComment = useCallback(
-    async (html: string, author: string) => {
+    async (text: string, author: string) => {
       if (!drawerContext) return;
 
       const processKey = drawerContext.stepKey;
@@ -290,10 +296,11 @@ export function DepartmentView({
           departmentSlug,
           processKey,
           author,
-          html,
+          text,
         );
         if (postError) throw postError;
 
+        // Reload thread after insert; we don't optimistically append to avoid ordering drift.
         const { data, error: reloadError } = await getCommentsForStep(
           departmentSlug,
           processKey,

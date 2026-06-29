@@ -42,9 +42,9 @@ export interface DepartmentConfig {
 export interface Comment {
   id: string;
   author: string;
-  html: string;
+  /** Plain text for new rows; legacy rows may still contain HTML until migrated. */
+  text: string;
   createdAt: string;
-  when: string;
 }
 
 export interface DrawerContext {

@@ -4,6 +4,7 @@ export type SupabaseErrorLike = {
   details?: string;
 };
 
+/** Prefer Supabase `details` over `message` alone for operator-facing errors. */
 export function formatSupabaseMessage(error: SupabaseErrorLike): string {
   return [error.message, error.details].filter(Boolean).join(" — ");
 }

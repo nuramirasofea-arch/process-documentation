@@ -2,21 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CommentAuthorModal } from "@/app/components/comment-author-modal";
-import { RichTextEditor } from "@/app/components/rich-text-editor";
 import { getCommentAuthor, setCommentAuthor } from "@/lib/comment-author";
-import { sanitizeHtml, stripTags } from "@/lib/sanitize-html";
+import { formatCommentTimestamp } from "@/lib/format-comment-date";
+import { formatCommentForDisplay } from "@/lib/sanitize-html";
 import type { Comment } from "@/lib/types";
 
 interface CommentSectionProps {
   comments: Comment[];
   isLoading?: boolean;
   isPosting?: boolean;
-  onPost: (html: string, author: string) => Promise<void>;
+  onPost: (text: string, author: string) => Promise<void>;
   onToast: (message: string) => void;
 }
 
 const COMMENT_PLACEHOLDER =
-  "Comments are for discussion about this step - not the procedure itself (that goes in the field above). Use this to raise questions, flag a pain point or bottleneck, suggest an improvement, note who owns an open issue, or add context the team should know. Tip: start with your point, then add detail.";
+  "Discuss this step — ask a question, flag a bottleneck, or add context for the team. Plain text only.";
 
 export function CommentSection({
   comments,
@@ -28,16 +28,16 @@ export function CommentSection({
   const [draft, setDraft] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [showAuthorModal, setShowAuthorModal] = useState(false);
-  const [pendingHtml, setPendingHtml] = useState<string | null>(null);
+  const [pendingText, setPendingText] = useState<string | null>(null);
 
   useEffect(() => {
     setAuthorName(getCommentAuthor() ?? "");
   }, []);
 
   const submitComment = useCallback(
-    async (html: string, author: string) => {
+    async (text: string, author: string) => {
       try {
-        await onPost(html, author);
+        await onPost(text, author);
         setDraft("");
       } catch (error) {
         onToast(
@@ -54,81 +54,109 @@ export function CommentSection({
       setAuthorName(name);
       setShowAuthorModal(false);
 
-      if (pendingHtml) {
-        void submitComment(pendingHtml, name);
-        setPendingHtml(null);
+      if (pendingText) {
+        void submitComment(pendingText, name);
+        setPendingText(null);
       }
     },
-    [pendingHtml, submitComment],
+    [pendingText, submitComment],
   );
 
   const handlePost = () => {
-    const html = sanitizeHtml(draft);
-    if (!stripTags(html).trim()) return;
+    const text = draft.trim();
+    if (!text) return;
 
     if (!authorName.trim()) {
-      setPendingHtml(html);
+      setPendingText(text);
       setShowAuthorModal(true);
       return;
     }
 
-    void submitComment(html, authorName);
+    void submitComment(text, authorName);
   };
 
   const closeAuthorModal = () => {
     setShowAuthorModal(false);
-    setPendingHtml(null);
+    setPendingText(null);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      handlePost();
+    }
   };
 
   return (
     <>
-      <div className="comments">
-        <p className="field-label">
-          Comments <span className="cbadge">{comments.length}</span>
+      <div className="comments-panel">
+        <p className="comments-panel-intro">
+          Team discussion for this step. Official procedures belong in
+          Documentation.
         </p>
+
         <div className="comments-scroll">
-          <ul className="comment-list">
-            {comments.map((comment) => (
-              <li key={comment.id} className="comment">
-                <div className="meta">
-                  <span>
-                    <strong>{comment.author}</strong> · {comment.when}
-                  </span>
-                </div>
-                <div
-                  className="body"
-                  dangerouslySetInnerHTML={{ __html: comment.html }}
-                />
-              </li>
-            ))}
-          </ul>
-          {isLoading && comments.length === 0 && (
-            <p className="comment-status">Loading comments…</p>
-          )}
-          <div className="comment-add">
-            {authorName && (
-              <p className="comment-author-bar">
-                Posting as <strong>{authorName}</strong>
-                <button
-                  type="button"
-                  className="comment-change-name"
-                  onClick={() => setShowAuthorModal(true)}
-                >
-                  Change name
-                </button>
+          {isLoading && comments.length === 0 ? (
+            <p className="comment-loading">Loading comments…</p>
+          ) : comments.length === 0 ? (
+            <div className="comment-empty">
+              <span className="comment-empty-icon" aria-hidden="true">
+                💬
+              </span>
+              <p className="comment-empty-title">No comments yet</p>
+              <p className="comment-empty-sub">
+                Start the discussion by posting the first comment.
               </p>
-            )}
-            <RichTextEditor
-              value={draft}
-              onChange={setDraft}
-              placeholder={COMMENT_PLACEHOLDER}
-              editorClassName="rt-editor-lg"
-              onCtrlEnter={handlePost}
-            />
+            </div>
+          ) : (
+            <ul className="comment-list">
+              {comments.map((comment) => (
+                <li key={comment.id} className="comment">
+                  <header className="comment-header">
+                    <strong className="comment-author">{comment.author}</strong>
+                    <time
+                      className="comment-time"
+                      dateTime={comment.createdAt}
+                    >
+                      {formatCommentTimestamp(comment.createdAt)}
+                    </time>
+                  </header>
+                  <div className="comment-body">
+                    {formatCommentForDisplay(comment.text)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="comment-compose">
+          {authorName && (
+            <p className="comment-author-bar">
+              Commenting as <strong>{authorName}</strong>
+              <button
+                type="button"
+                className="comment-change-name"
+                onClick={() => setShowAuthorModal(true)}
+              >
+                Change name
+              </button>
+            </p>
+          )}
+          <textarea
+            className="comment-input"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={COMMENT_PLACEHOLDER}
+            rows={4}
+            aria-label="New comment"
+          />
+          <div className="comment-compose-actions">
             <button
               type="button"
               className="post"
-              disabled={isPosting}
+              disabled={isPosting || !draft.trim()}
               onClick={handlePost}
             >
               {isPosting ? "Posting…" : "Post comment"}

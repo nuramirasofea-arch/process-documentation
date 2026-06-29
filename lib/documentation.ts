@@ -44,6 +44,7 @@ function toDocumentationError(
   });
 }
 
+/** Maps Supabase rows to the `process_key → content` shape used by the UI. */
 export function documentationToDetails(
   records: DocumentationRecord[],
 ): Record<string, string> {
@@ -83,6 +84,12 @@ export async function getDocumentationByDepartment(
   return { data: (data ?? []) as DocumentationRecord[], error: null };
 }
 
+/**
+ * Saves documentation for a process step.
+ *
+ * Upserts on `(department, process_key)` so each step has exactly one row
+ * without requiring a prior fetch or risking duplicate records.
+ */
 export async function saveDocumentation(
   department: string,
   processKey: string,

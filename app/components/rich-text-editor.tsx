@@ -8,6 +8,12 @@ import {
   type KeyboardEvent,
 } from "react";
 
+/**
+ * contentEditable documentation editor backed by `document.execCommand`.
+ *
+ * Toolbar actions would collapse the selection without save/restore because
+ * button mousedown steals focus from the editable region.
+ */
 const FORMAT_COMMANDS = [
   "bold",
   "italic",
@@ -110,6 +116,7 @@ export function RichTextEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || editor.innerHTML === value) return;
+    // Sync external value (e.g. step change) without clobbering in-progress edits.
     editor.innerHTML = value;
     setIsFilled(value.replace(/<[^>]*>/g, "").trim().length > 0);
   }, [value]);
@@ -171,6 +178,7 @@ export function RichTextEditor({
   );
 
   const handleToolbarMouseDown = (event: React.MouseEvent) => {
+    // Prevent focus loss so execCommand applies to the saved selection.
     event.preventDefault();
     saveSelection();
   };

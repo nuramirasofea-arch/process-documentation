@@ -16,6 +16,7 @@ export default async function DepartmentPage({
   }
 
   const config = getDepartmentConfig(department);
+  // Server-fetched docs hydrate the client; comments load client-side on mount.
   const { data: initialDocumentation, error } =
     await getDocumentationByDepartment(department);
 

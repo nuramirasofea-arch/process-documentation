@@ -46,16 +46,17 @@ function toCommentError(
   });
 }
 
+/** Maps a DB row to the client Comment shape. */
 export function toComment(record: CommentRecord): Comment {
   return {
     id: record.id,
     author: record.author,
-    html: record.comment,
+    text: record.comment,
     createdAt: record.created_at,
-    when: new Date(record.created_at).toLocaleString(),
   };
 }
 
+/** Groups department-wide comment rows by step for badge counts on process cards. */
 export function groupCommentsByProcessKey(
   records: CommentRecord[],
 ): Record<string, Comment[]> {
@@ -96,6 +97,7 @@ async function fetchCommentRecords(
     .eq("department", department)
     .order("created_at", { ascending: true });
 
+  // Omit processKey to fetch the whole department (used for badge counts).
   if (processKey) {
     query = query.eq("process_key", processKey);
   }
@@ -116,6 +118,7 @@ async function fetchCommentRecords(
 }
 
 export async function getCommentsByDepartment(department: string) {
+  // Fetches all steps in one query so cards can show counts without opening the drawer.
   return fetchCommentRecords(department);
 }
 
@@ -132,6 +135,10 @@ export async function getCommentsForStep(
   return { data: data.map(toComment), error: null };
 }
 
+/**
+ * Appends a new comment row. Comments are append-only (no upsert) so discussion
+ * history is preserved. `comment` is stored as plain text with `\n` line breaks.
+ */
 export async function postComment(
   department: string,
   processKey: string,
