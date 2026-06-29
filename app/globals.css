@@ -497,6 +497,7 @@ main.wide {
   top: 0;
   right: 0;
   height: 100vh;
+  height: 100dvh;
   width: var(--panel-w);
   background: var(--card);
   border-left: 1px solid var(--line);
@@ -634,17 +635,18 @@ main.wide {
 }
 
 .comments-panel {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
   padding: 16px 20px 0;
   background: var(--field);
 }
 
 .comments-tab-panel {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -660,7 +662,6 @@ main.wide {
 }
 
 .comments-scroll {
-  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1161,11 +1162,11 @@ main.wide {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: none;
+  flex-shrink: 0;
   padding: 16px 0 18px;
-  margin-top: auto;
   border-top: 1px solid var(--line-soft);
   background: var(--field);
+  box-shadow: 0 -6px 16px rgba(28, 28, 28, 0.05);
 }
 
 .comment-compose-actions {
@@ -1330,6 +1331,22 @@ main.wide {
 
   .comment-compose {
     padding: 14px 0 16px;
+  }
+}
+
+@media (max-height: 780px) {
+  .comment-input {
+    min-height: 72px;
+  }
+
+  .comment-empty {
+    min-height: 120px;
+    padding: 24px 16px 32px;
+  }
+
+  .comment-compose {
+    padding: 12px 0 14px;
+    gap: 8px;
   }
 }
 
