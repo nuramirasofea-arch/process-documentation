@@ -220,6 +220,271 @@ export const PROCESSES: Process[] = [
     pains:
       "Payment not reflected on the spot → chase loop · account ownership unresolved",
   },
+  {
+    id: "einvoice",
+    seq: "9",
+    dept: "finance",
+    title: "e-Invoice",
+    tag: "Finance · HIGH PRIORITY",
+    steps: [
+      {
+        k: "start",
+        t: "ORND Customer Database",
+        board: "source: info gathering · determine collection stage / under MA?",
+      },
+      {
+        k: "handoff",
+        t: "B2B Business Data",
+        dots: ["orange"],
+        board: "split: Complete / Incomplete",
+      },
+      {
+        k: "handoff",
+        t: "B2C Consumer Data",
+        board: "split: Complete / Incomplete",
+      },
+      { k: "process", t: "Complete → Non-Consol + SFTP", board: "full info" },
+      {
+        k: "process",
+        t: "Incomplete → Consolidated SFTP",
+        board:
+          "lesser info · lump sum · payment gateway / website sales 100 transaction",
+      },
+      { k: "handoff", t: "JDME Customer Database", board: "B2B / B2C" },
+      {
+        k: "pain",
+        t: "Incomplete Data → Post-Mortem",
+        dots: ["orange"],
+        board: "send reminder",
+      },
+      { k: "end", t: "Submission" },
+    ],
+    pains:
+      "Incomplete customer data · consolidation vs non-consolidation routing · post-mortem reminders",
+  },
+  {
+    id: "accreporting",
+    seq: "10",
+    dept: "finance",
+    title: "Acc & Reporting",
+    tag: "Finance · 2 companies",
+    steps: [
+      {
+        k: "start",
+        t: "Unresolved items",
+        board:
+          "credit notes, overpayment receipting + unresolved PO claims · before 1st",
+      },
+      {
+        k: "pain",
+        t: "Revenue Reconciliation",
+        dots: ["orange"],
+        board: "ORND / QBO · manual check · 1st",
+      },
+      { k: "process", t: "Revenue Share / Deferred Income", board: "3rd / 5th" },
+      {
+        k: "process",
+        t: "Prepayment / Accrual / Fixed Asset / Intercompany Schedules",
+        board: "5th–6th · Google Sheets",
+      },
+      { k: "handoff", t: "SST Submission", board: "7th" },
+      { k: "handoff", t: "Withholding Tax", board: "7th" },
+      {
+        k: "pain",
+        t: "Journal Adj → ITSB / WKL",
+        dots: ["orange"],
+        board: "8th · consolidation of data",
+      },
+      { k: "process", t: "Consol Mgmt Account", board: "10th" },
+      { k: "end", t: "Reporting", board: "11th" },
+    ],
+    pains:
+      "Manual checks · consolidation of data across 2 companies · month-end sequence pressure",
+  },
+  {
+    id: "sourcing",
+    seq: "11",
+    dept: "finance",
+    title: "Procurement & Sourcing",
+    tag: "Finance / Ops",
+    steps: [
+      { k: "start", t: "Sourcing Inquiry", board: "G.Form + WhatsApp" },
+      {
+        k: "process",
+        t: "Petty Cash (non-approval items) → Pay → Submit Claim → Reimburse",
+      },
+      { k: "process", t: "Credit Card → Pay → Submit Claim" },
+      {
+        k: "process",
+        t: "Quarterly Purchase (inventory approval items) → Set Par Level",
+      },
+      {
+        k: "pain",
+        t: "Inventory Check",
+        dots: ["orange"],
+        board: "re-order · standardize data set",
+      },
+      { k: "process", t: "Cost Summary → Limit of Authority" },
+      {
+        k: "handoff",
+        t: "PR (non-inventory approval items)",
+        board: "tracker design · existing pipeline",
+      },
+      { k: "process", t: "Purchase Order", board: "QBO" },
+      { k: "process", t: "Goods / Service Fulfilment" },
+      { k: "end", t: "Supplier Payment" },
+    ],
+    pains:
+      "Multiple entry channels · manual inventory check · non-standardised data",
+  },
+  {
+    id: "recruitment",
+    seq: "12",
+    dept: "hr",
+    title: "Recruitment",
+    tag: "HR",
+    steps: [
+      { k: "start", t: "Competency Framework & Manpower Planning" },
+      { k: "process", t: "Hiring Requisition" },
+      {
+        k: "process",
+        t: "Hiring Strategy",
+        board: "Budget · JD Scope & Requirement · Sourcing Solution",
+      },
+      {
+        k: "handoff",
+        t: "Team Tailor (ATS)",
+        board:
+          "fed by Job Ads Platform (Jobstreet, LinkedIn) and Referrals (ERBP, Agencies)",
+      },
+      { k: "process", t: "HR Screening" },
+      { k: "handoff", t: "HM Shortlisting" },
+      { k: "handoff", t: "Interview → Assignment → 2nd Interview" },
+      { k: "process", t: "Background Check" },
+      { k: "process", t: "Offer → Accept" },
+      { k: "end", t: "Pre-Onboarding" },
+      {
+        k: "opp",
+        t: "Analysis / Dashboard",
+        dots: ["green"],
+        board:
+          "visibility on hiring process · time & stage tracker · dashboard creation",
+      },
+    ],
+    pains: "Visibility on hiring process · time & stage tracking",
+  },
+  {
+    id: "perfmgmt",
+    seq: "13",
+    dept: "hr",
+    title: "Performance Management",
+    tag: "HR",
+    steps: [
+      {
+        k: "start",
+        t: "Define Dept & Role Scope",
+        board: "ongoing · quarterly",
+      },
+      {
+        k: "process",
+        t: "Goal Setting",
+        board: "Q1–Q4 · target % → 100% · quarterly update",
+      },
+      {
+        k: "process",
+        t: "Result Update",
+        board: "UI/UX requirements on 1 platform",
+      },
+      {
+        k: "pain",
+        t: "Individual Scorecard",
+        dots: ["orange"],
+        board: "automation on visibility",
+      },
+      {
+        k: "handoff",
+        t: "Supervisor Review / Team Member Acknowledge",
+        board: "manual tracking",
+      },
+      { k: "end", t: "Payroll", board: "manual data input into Kakitangan" },
+    ],
+    pains:
+      "Manual tracking · manual data input · automation & visibility needed",
+  },
+  {
+    id: "contractmgmt",
+    seq: "14",
+    dept: "legal",
+    title: "Contract Management & Tracker",
+    tag: "Legal",
+    steps: [
+      {
+        k: "start",
+        t: "Review Request",
+        board:
+          "emails / WS · MAs (ORND & g-drive), other agreements (LOU, T&C, NDA, TA, MOU) — no master database",
+      },
+      {
+        k: "handoff",
+        t: "Legal",
+        board:
+          "Review / Drafting new template · no precedents · MOU-community pre-approved excluded (currently bypassed)",
+      },
+      {
+        k: "process",
+        t: "Finalization",
+        board: "standardization on signee representative",
+      },
+      { k: "pain", t: "Signing", board: "visibility on signee" },
+      {
+        k: "pain",
+        t: "Storage",
+        dots: ["orange"],
+        board: "no master database · WS/g-drive · no tracker · archiving",
+      },
+      { k: "process", t: "Performance" },
+      { k: "end", t: "Renewal", board: "many miss renewals" },
+    ],
+    pains:
+      "No master database · no tracker · missed renewals · no precedents for new templates",
+  },
+  {
+    id: "legalenq",
+    seq: "15",
+    dept: "legal",
+    title: "Legal Enquiries (Outlet)",
+    tag: "Legal",
+    steps: [
+      { k: "start", t: "Enquiries / Complaints", board: "FD / AOM" },
+      {
+        k: "process",
+        t: "Facts Gathering",
+        board: "SDM / HOD / Legal · report / escalate",
+      },
+      {
+        k: "pain",
+        t: "Draft Responses",
+        dots: ["orange"],
+        board:
+          "FD / AOM · responses often not thoughtful · incomplete facts",
+      },
+      {
+        k: "handoff",
+        t: "Review Responses",
+        board: "Legal / HOD (if required) / SDM / KA",
+      },
+      { k: "process", t: "Outlet", board: "comms required · visibility" },
+      { k: "process", t: "Meeting (if required)" },
+      {
+        k: "handoff",
+        t: "Management (if required)",
+        board: "comm. overload · report if required",
+      },
+      { k: "end", t: "Closure" },
+    ],
+    pains:
+      "No escalation framework · comm. overload · responses not always thoughtful · incomplete facts",
+  },
 ];
 
 export const PARKING_LOT = {
@@ -259,6 +524,27 @@ const DEPARTMENT_CONFIGS: Record<string, DepartmentConfig> = {
     blurb: "Event invoicing and payment verification.",
     variant: "community",
     processDept: "commercial",
+  },
+  finance: {
+    slug: "finance",
+    name: "Finance",
+    blurb: "e-Invoice, accounting & reporting, and procurement/sourcing.",
+    variant: "finance",
+    processDept: "finance",
+  },
+  hr: {
+    slug: "hr",
+    name: "HR",
+    blurb: "Recruitment and performance management.",
+    variant: "hr",
+    processDept: "hr",
+  },
+  legal: {
+    slug: "legal",
+    name: "Legal",
+    blurb: "Contract management & tracker and legal enquiries.",
+    variant: "legal",
+    processDept: "legal",
   },
   parking: {
     slug: "parking",

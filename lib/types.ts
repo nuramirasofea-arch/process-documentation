@@ -34,7 +34,15 @@ export interface DepartmentConfig {
   slug: string;
   name: string;
   blurb: string;
-  variant: "sales" | "ops" | "commercial" | "community" | "parking";
+  variant:
+    | "sales"
+    | "ops"
+    | "commercial"
+    | "community"
+    | "finance"
+    | "hr"
+    | "legal"
+    | "parking";
   isParkingLot?: boolean;
   processDept?: string;
 }
